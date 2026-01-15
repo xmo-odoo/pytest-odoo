@@ -15,6 +15,7 @@ only when their containing modules are installed in the provided database.
 """
 
 import importlib
+import importlib.metadata
 import logging
 import os
 import pathlib
@@ -99,8 +100,9 @@ SKIP_INHERITED = pytest.mark.skip(
     "is set on the class also they're bad and should be fixed"
 )
 
-# pytest does not implement TestCase.subTest by default
-pytest_plugins = ["pytest_subtests"]
+if importlib.metadata.version('pytest') < '9.0.0':
+    # pytest 8 does not implement TestCase.subTest by default
+    pytest_plugins = ["pytest_subtests"]
 
 collect_ignore = [
     "__*__",
