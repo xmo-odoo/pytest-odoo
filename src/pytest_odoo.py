@@ -40,7 +40,8 @@ import pytest
 
 with ExitStack() as s:
     # odoo.tests.common logs an error if it's imported without `config['test_enable']`
-    (logger := logging.getLogger('odoo.tests.common')).disabled = True
+    logger = logging.getLogger('odoo.tests.common')
+    logger.disabled = True
     s.callback(setattr, logger, 'disabled', False)
 
     import odoo
@@ -256,7 +257,7 @@ def odoo_session(pytestconfig: pytest.Config) -> Iterator[registry.Registry]:
     # preload registry
     yield registry.Registry.new(dbname)
 
-    del threading.current_thread().dbname
+    delattr(threading.current_thread(), 'dbname')
     threading.current_thread().testing = module.current_test = False
 
     registry.Registry.delete(dbname)
@@ -353,7 +354,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             and issubclass(item.parent.obj, unittest.TestCase)
             else None
         )
-        if cls and item.originalname not in cls.obj.__dict__:
+        if cls and cast(pytest.Function, item).originalname not in cls.obj.__dict__:
             # if a test method was inherited, skip it unless the class
             # is marked to allow it
             if not getattr(cls.obj, 'allow_inherited_tests_method', False):
