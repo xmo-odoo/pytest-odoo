@@ -282,7 +282,9 @@ def odoo_http(odoo_session: registry.Registry) -> Iterator[None]:
     """For :class:`HttpCase` tests, we need to start the http server and
     pregenerate the assets.
     """
-    server.server = server.ThreadedServer(odoo.http.root)
+    # 19.2 because simplicity is way too simple
+    root = getattr(odoo.http, 'root', None) or odoo.http.router.root
+    server.server = server.ThreadedServer(root)
     # keep the server running until we stop it
     server.server.start(stop=False)
     with odoo_session.cursor() as cr:
