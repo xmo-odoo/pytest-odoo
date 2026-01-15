@@ -164,6 +164,11 @@ def pytest_configure(config: pytest.Config) -> None:
     if not config.getini('python_files'):
         config.addinivalue_line("python_files", "*/tests/test_*.py")
 
+    # known tags / markers
+    config.addinivalue_line("markers", "standard")
+    config.addinivalue_line("markers", "at_install")
+    config.addinivalue_line("markers", "post_install")
+    config.addinivalue_line("markers", "external")
 
 def pytest_ignore_collect(
     collection_path: pathlib.Path, path: py.path.local, config: pytest.Config
