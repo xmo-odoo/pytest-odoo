@@ -31,6 +31,7 @@ from pathlib import Path
 from shutil import copytree
 from types import SimpleNamespace, ModuleType
 from typing import Iterable, cast
+import unittest.mock
 
 import _pytest.python
 import _pytest.unittest
@@ -195,20 +196,9 @@ def _get_default_datadir() -> str:
 @pytest.hookimpl(wrapper=True)
 def pytest_collection(session: pytest.Session) -> Iterator[None]:
     database = session.config.getoption('--database')
-    cr = db_connect(database).cursor()
-    cr.transaction = environments.Transaction(
-        cast(
-            registry.Registry,
-            SimpleNamespace(
-                _init_modules=set(), load=lambda *args: [], descendants=lambda *args: []
-            ),
-        )
-    )
-
-    # ensures all the module code is imported in the correct (dependency) order,
-    # and pytest will not be reimporting files in the wrong order
-    load_module_code(cr)
-
+    # Load the registry to ensure all the module code is imported in the correct
+    # (dependency) order and pytest will not be reimporting files in the wrong order.
+    registry.Registry.new(database)
     registry.Registry.delete(database)
     close_db(database)
 
