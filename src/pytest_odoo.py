@@ -210,7 +210,10 @@ def odoo_session(pytestconfig: pytest.Config) -> Iterator[registry.Registry]:
     # remove odoo test harness's retry magic, pytest has rerunfailures as well
     # as failure selection (--lf, --sw, ...) and it breaks because pytest
     # doesn't fully implement `unittest.TestResult`
-    del BaseCase.run
+    try:
+        del BaseCase.run
+    except AttributeError:
+        pass  # retry magic has been moved to the test suite in recent master
     # patch cut down _Outcome for bit required by pytest_subtest on 3.10, it's
     # probably not *correct* as pytest_subtest could need that info frfr but...
     old_init = _Outcome.__init__
