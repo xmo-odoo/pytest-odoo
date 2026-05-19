@@ -29,7 +29,7 @@ from contextlib import closing, ExitStack
 from os import environ
 from pathlib import Path
 from shutil import copytree
-from types import SimpleNamespace, ModuleType
+from types import ModuleType
 from typing import Iterable, cast
 import unittest.mock
 
@@ -252,13 +252,13 @@ def odoo_session(pytestconfig: pytest.Config) -> Iterator[registry.Registry]:
     server.load_server_wide_modules()
 
     threading.current_thread().testing = True
-    module.current_test = threading.current_thread().dbname = dbname
+    threading.current_thread().dbname = dbname
 
     # preload registry
     yield registry.Registry.new(dbname)
 
     delattr(threading.current_thread(), 'dbname')
-    threading.current_thread().testing = module.current_test = False
+    threading.current_thread().testing = False
 
     registry.Registry.delete(dbname)
     close_db(dbname)
@@ -270,11 +270,17 @@ def odoo_session(pytestconfig: pytest.Config) -> Iterator[registry.Registry]:
             cr.execute(f'DROP DATABASE "{dbname}"')
 
 
+# autouse is load-bearing
+@pytest.fixture(scope='class', autouse=True)
+def odoo_test_pre_setupclass(request: pytest.FixtureRequest) -> Iterator[None]:
+    module.current_test = request.cls('runTest')
+    yield
+
+
 @pytest.fixture
 def odoo_test(odoo_session: registry.Registry, request: pytest.FixtureRequest) -> Iterator[None]:
-    module.current_test = request.node.instance
+    module.current_test = request.instance
     yield
-    module.current_test = True
 
 
 @pytest.fixture(scope='session')
@@ -334,7 +340,7 @@ class OdooModule(pytest.Module):
     def collect(self) -> Iterable[pytest.Item | pytest.Collector]:
         for item in super().collect():
             if isinstance(item, pytest.Class) and issubclass(item.obj, BaseCase):
-                item.add_marker(pytest.mark.usefixtures("odoo_test"))
+                item.add_marker(pytest.mark.usefixtures("odoo_test", "odoo_test_pre_setupclass"))
                 if issubclass(item.obj, HttpCase):
                     item.add_marker(pytest.mark.usefixtures("odoo_http"))
             yield item
