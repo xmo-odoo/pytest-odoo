@@ -270,15 +270,16 @@ def odoo_session(pytestconfig: pytest.Config) -> Iterator[registry.Registry]:
             cr.execute(f'DROP DATABASE "{dbname}"')
 
 
-# autouse is load-bearing
 @pytest.fixture(scope='class', autouse=True)
 def odoo_test_pre_setupclass(request: pytest.FixtureRequest) -> Iterator[None]:
+    if issubclass(request.cls, HttpCase):
+        request.getfixturevalue("odoo_http")
     module.current_test = request.cls('runTest')
     yield
 
 
-@pytest.fixture
-def odoo_test(odoo_session: registry.Registry, request: pytest.FixtureRequest) -> Iterator[None]:
+@pytest.fixture(autouse=True)
+def odoo_test(request: pytest.FixtureRequest, odoo_session: registry.Registry) -> Iterator[None]:
     module.current_test = request.instance
     yield
 
@@ -328,22 +329,6 @@ def import_path(
 
 
 _pytest.python.import_path = import_path
-
-
-def pytest_pycollect_makemodule(
-    module_path: pathlib.Path, path: py.path.local, parent: pytest.Item
-) -> pytest.Module:
-    return OdooModule.from_parent(parent, path=module_path)
-
-
-class OdooModule(pytest.Module):
-    def collect(self) -> Iterable[pytest.Item | pytest.Collector]:
-        for item in super().collect():
-            if isinstance(item, pytest.Class) and issubclass(item.obj, BaseCase):
-                item.add_marker(pytest.mark.usefixtures("odoo_test", "odoo_test_pre_setupclass"))
-                if issubclass(item.obj, HttpCase):
-                    item.add_marker(pytest.mark.usefixtures("odoo_http"))
-            yield item
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
