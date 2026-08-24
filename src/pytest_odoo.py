@@ -30,7 +30,7 @@ from os import environ
 from pathlib import Path
 from shutil import copytree
 from types import ModuleType
-from typing import Iterable, cast
+from typing import cast
 import unittest.mock
 
 import _pytest.python
@@ -172,7 +172,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "external")
 
 def pytest_ignore_collect(
-    collection_path: pathlib.Path, path: py.path.local, config: pytest.Config
+    collection_path: pathlib.Path, config: pytest.Config
 ) -> bool | None:
     """Skips collection for modules which are not installed in the current
     database.
